@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Phase 3 - Strategy Engine & Strategy Builder] - 2026-10-25
+
+### Added
+- Added `strategies/models.py` with domain schemas for `Signal`, `SignalAction`, `StrikePreference`, `IndicatorCondition`, `RuleBlock`, and `StrategyConfig`.
+- Added `strategies/indicators.py` with vectorized implementations of SMA, EMA, Wilder's RSI, SuperTrend (10, 3), VWAP, MACD, Bollinger Bands, and ATR.
+- Added `strategies/strike_selector.py` mapping index spot prices to exact option strikes (ATM, ITM 1/2, OTM 1/2 for CE & PE) with strict options buying constraints.
+- Added `strategies/base.py` providing abstract `BaseStrategy` with lifecycle hooks, daily trade counters, and max trade validations.
+- Added built-in production strategies: `EMACrossoverStrategy` (9/21 EMA) and `SuperTrendRSIStrategy` (SuperTrend 10,3 + RSI 14).
+- Added `strategies/rule_engine.py` for dynamic rule-based strategy execution and conditional evaluation.
+- Added `strategy_lab/builder.py` providing SQLite strategy persistence with automated version snapshots and diff histories.
+- Added `strategies/manager.py` coordinating live strategy feeds, real-time candle dispatching, and strike resolution.
+- Added `strategies/router.py` with FastAPI endpoints (`/api/strategies`, `/meta/indicators`, `/{id}/activate`, `/{id}/deactivate`, `/{id}/versions`).
+- Added unit and integration tests (`tests/test_indicators.py`, `tests/test_strike_selector.py`, `tests/test_strategies.py`, `tests/test_rule_engine.py`, `tests/test_strategy_api.py`), bringing passing tests to 44/44.
+
 ## [Phase 2 - Market Data Engine] - 2026-10-25
 
 ### Added
