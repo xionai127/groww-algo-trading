@@ -9,6 +9,7 @@ import uvicorn
 
 from config import ExecutionMode, logger, settings
 from database import get_schema_version, init_db
+from market_data import market_engine, market_router
 
 
 @asynccontextmanager
@@ -19,13 +20,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         init_db()
         schema_v = get_schema_version()
         logger.info(f"Database ready. Current schema version: {schema_v}")
+        await market_engine.start()
     except Exception as e:
-        logger.critical(f"Failed to initialize database: {e}", exc_info=True)
+        logger.critical(f"Failed to initialize database or market engine: {e}", exc_info=True)
         sys.exit(1)
 
     yield
 
     logger.info("Application shutting down safely.")
+    await market_engine.stop()
 
 
 app = FastAPI(
@@ -43,6 +46,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register routers
+app.include_router(market_router)
 
 
 @app.get("/health")
