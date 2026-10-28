@@ -1,6 +1,6 @@
 # Development Status
 
-## Current Phase: PHASE 3 — STRATEGY ENGINE & STRATEGY BUILDER (COMPLETED)
+## Current Phase: PHASE 4 — BACKTESTING ENGINE (COMPLETED)
 
 ### Completed Tasks:
 - [x] Verified project directory structure.
@@ -26,7 +26,14 @@
 - [x] Implemented StrategyBuilder with SQLite version snapshots and diff history in `strategy_lab/builder.py`.
 - [x] Implemented centralized StrategyManager connected to live candle aggregator with contract resolution in `strategies/manager.py`.
 - [x] Implemented FastAPI strategy endpoints (`/api/strategies`, `/meta/indicators`, `/activate`, `/deactivate`, `/versions`) in `strategies/router.py`.
-- [x] Implemented automated test suite across all modules (44 of 44 tests passing).
+- [x] Implemented backtest data schemas (`BacktestRequest`, `BacktestTrade`, `EquityPoint`, `BacktestSummary`, `BacktestResult`, `ExitReason`) in `backtesting/models.py`.
+- [x] Implemented `OptionSimulator` with Black-Scholes option pricing, strike resolution, slippage simulation, and Indian tax structure (STT, GST, stamp duty, turnover charges, Groww ₹20/order brokerage) in `backtesting/option_simulator.py`.
+- [x] Implemented `BacktestDataFeed` with SQLite cached candle loading and realistic synthetic intraday data generator in `backtesting/data_feed.py`.
+- [x] Implemented performance metrics calculation (Sharpe ratio, Sortino ratio, Calmar ratio, profit factor, max drawdown, win/loss rates, streaks) in `backtesting/metrics.py`.
+- [x] Implemented `BacktestEngine` simulating candle-by-candle strategy execution, intraday square-off at 15:15 IST, SL/TP execution, and equity curve tracking in `backtesting/engine.py`.
+- [x] Implemented SQLite persistence for backtest runs (`backtest_runs` table) and `BacktestRepository` in `database/db.py` and `backtesting/repository.py`.
+- [x] Implemented FastAPI backtest endpoints (`/api/backtest/run`, `/api/backtest/runs`, `/api/backtest/runs/{id}`, `/api/backtest/seed-candles`) in `backtesting/router.py` and registered with `app.py`.
+- [x] Implemented automated test suite across all modules (52 of 52 tests passing).
 
 ### Test Results:
 - `tests/test_app.py`: 2 passed
@@ -42,14 +49,15 @@
 - `tests/test_strategies.py`: 3 passed
 - `tests/test_rule_engine.py`: 2 passed
 - `tests/test_strategy_api.py`: 3 passed
-- **Total: 44 passed in 1.42s**
+- `tests/test_backtest_engine.py`: 6 passed
+- `tests/test_backtest_api.py`: 2 passed
+- **Total: 52 passed in 1.96s**
 
 ### Pending Phases:
-- [ ] Phase 4: Backtesting Engine
 - [ ] Phase 5: Realistic Paper Trading
 - [ ] Phase 6: Centralized Risk Management & Journaling
 - [ ] Phase 7: Browser Dashboard
 - [ ] Phase 8: Groww API Integration & Live-Trading Readiness
 
 ### Next Step:
-- Awaiting user instruction to begin **PHASE 4 — BACKTESTING ENGINE**.
+- Ready to begin **PHASE 5 — REALISTIC PAPER TRADING**.

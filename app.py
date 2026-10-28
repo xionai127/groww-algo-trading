@@ -11,6 +11,7 @@ from config import ExecutionMode, logger, settings
 from database import get_schema_version, init_db
 from market_data import market_engine, market_router
 from strategies import strategy_manager, strategy_router
+from backtesting import backtest_router
 
 
 @asynccontextmanager
@@ -52,6 +53,7 @@ app.add_middleware(
 # Register routers
 app.include_router(market_router)
 app.include_router(strategy_router)
+app.include_router(backtest_router)
 
 
 @app.get("/health")

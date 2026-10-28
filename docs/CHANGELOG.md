@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Phase 4 - Backtesting Engine] - 2026-10-28
+
+### Added
+- Added `backtesting/models.py` with schemas for `BacktestRequest`, `BacktestTrade`, `EquityPoint`, `BacktestSummary`, `BacktestResult`, and `ExitReason`.
+- Added `backtesting/option_simulator.py` implementing Black-Scholes premium calculation proxy, dynamic weekly expiry strike selector, configurable slippage, and Indian regulatory charges (STT on sell, GST 18%, stamp duty, exchange turnover fee, SEBI charges, and ₹20/order Groww brokerage).
+- Added `backtesting/data_feed.py` with SQLite cached candle loading from `market_candles` and realistic trending synthetic candle generation for gapless simulation.
+- Added `backtesting/metrics.py` computing Sharpe ratio, Sortino ratio, Calmar ratio, profit factor, max drawdown, win rate, average win/loss, and consecutive streaks.
+- Added `backtesting/engine.py` simulating candle-by-candle strategy signal evaluation, SL/TP triggers, 15:15 IST auto square-off, risk budget constraints, and equity curve generation.
+- Added `backtesting/repository.py` and `backtest_runs` SQLite table in `database/db.py` to persist run summaries, trade logs, and equity progression.
+- Added `backtesting/router.py` with endpoints (`/api/backtest/run`, `/api/backtest/runs`, `/api/backtest/runs/{run_id}`, `/api/backtest/seed-candles`) and integrated into `app.py`.
+- Added unit and API tests in `tests/test_backtest_engine.py` and `tests/test_backtest_api.py`, achieving 52/52 passing tests across the entire platform.
+
 ## [Phase 3 - Strategy Engine & Strategy Builder] - 2026-10-25
 
 ### Added

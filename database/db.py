@@ -152,6 +152,28 @@ def init_db() -> None:
             );
         """)
 
+        # 9. Backtest Runs & Performance History
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS backtest_runs (
+                id TEXT PRIMARY KEY,
+                strategy_id TEXT,
+                strategy_name TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                timeframe TEXT NOT NULL,
+                from_date TEXT NOT NULL,
+                to_date TEXT NOT NULL,
+                initial_capital REAL NOT NULL,
+                net_pnl REAL NOT NULL,
+                win_rate REAL NOT NULL,
+                total_trades INTEGER NOT NULL,
+                max_drawdown_pct REAL NOT NULL,
+                summary_json TEXT NOT NULL,
+                trades_json TEXT NOT NULL,
+                equity_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+        """)
+
         # Record migration version if empty
         cursor.execute("SELECT COUNT(*) as count FROM schema_migrations WHERE version = ?", (CURRENT_SCHEMA_VERSION,))
         if cursor.fetchone()["count"] == 0:
