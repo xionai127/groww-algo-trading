@@ -1,6 +1,6 @@
 # Development Status
 
-## Current Phase: PHASE 4 — BACKTESTING ENGINE (COMPLETED)
+## Current Phase: PHASE 5 — REALISTIC PAPER TRADING (COMPLETED)
 
 ### Completed Tasks:
 - [x] Verified project directory structure.
@@ -33,7 +33,13 @@
 - [x] Implemented `BacktestEngine` simulating candle-by-candle strategy execution, intraday square-off at 15:15 IST, SL/TP execution, and equity curve tracking in `backtesting/engine.py`.
 - [x] Implemented SQLite persistence for backtest runs (`backtest_runs` table) and `BacktestRepository` in `database/db.py` and `backtesting/repository.py`.
 - [x] Implemented FastAPI backtest endpoints (`/api/backtest/run`, `/api/backtest/runs`, `/api/backtest/runs/{id}`, `/api/backtest/seed-candles`) in `backtesting/router.py` and registered with `app.py`.
-- [x] Implemented automated test suite across all modules (52 of 52 tests passing).
+- [x] Implemented Paper Trading domain models (`PaperAccount`, `PaperPosition`, `PaperOrder`, `PaperTrade`, `OrderStatus`, `OrderType`, `TransactionType`, `ExitReason`, `PaperOrderRequest`) in `paper_trading/models.py`.
+- [x] Implemented `PaperExecutionSimulator` with adverse slippage modeling, strike resolution, upcoming weekly expiry calculation, and Indian tax/brokerage calculation in `paper_trading/execution.py`.
+- [x] Implemented `PaperTradingEngine` managing virtual portfolio (₹10,000 capital), open positions, SL/TP execution, 15:15 IST auto square-off, hard risk controls (max 1 open position, max 5 trades/day, ₹500 daily loss limit), and SQLite persistence in `paper_trading/engine.py`.
+- [x] Added `paper_positions` table to SQLite schema in `database/db.py`.
+- [x] Implemented FastAPI paper trading endpoints (`/api/paper/account`, `/positions`, `/orders`, `/trades`, `/positions/{id}/close`, `/reset`, `/mtm-update`) in `paper_trading/router.py` and registered with `app.py`.
+- [x] Wired automated `StrategyManager` signal dispatching directly into `PaperTradingEngine`.
+- [x] Implemented automated test suite across all modules (64 of 64 tests passing).
 
 ### Test Results:
 - `tests/test_app.py`: 2 passed
@@ -51,13 +57,14 @@
 - `tests/test_strategy_api.py`: 3 passed
 - `tests/test_backtest_engine.py`: 6 passed
 - `tests/test_backtest_api.py`: 2 passed
-- **Total: 52 passed in 1.96s**
+- `tests/test_paper_trading.py`: 10 passed
+- `tests/test_paper_api.py`: 2 passed
+- **Total: 64 passed in 2.25s**
 
 ### Pending Phases:
-- [ ] Phase 5: Realistic Paper Trading
 - [ ] Phase 6: Centralized Risk Management & Journaling
 - [ ] Phase 7: Browser Dashboard
 - [ ] Phase 8: Groww API Integration & Live-Trading Readiness
 
 ### Next Step:
-- Ready to begin **PHASE 5 — REALISTIC PAPER TRADING**.
+- Ready to begin **PHASE 6 — CENTRALIZED RISK MANAGEMENT & JOURNALING**.

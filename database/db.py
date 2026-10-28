@@ -174,6 +174,39 @@ def init_db() -> None:
             );
         """)
 
+        # 10. Paper Positions tracking
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS paper_positions (
+                id TEXT PRIMARY KEY,
+                strategy_id TEXT,
+                symbol TEXT NOT NULL,
+                contract_symbol TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                strike_price REAL NOT NULL,
+                expiry_date TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                entry_spot REAL NOT NULL,
+                entry_time TEXT NOT NULL,
+                current_price REAL NOT NULL,
+                current_spot REAL NOT NULL,
+                unrealized_pnl REAL NOT NULL,
+                return_pct REAL NOT NULL,
+                target_price REAL,
+                stop_loss_price REAL,
+                is_open INTEGER NOT NULL DEFAULT 1,
+                exit_time TEXT,
+                exit_price REAL,
+                exit_reason TEXT,
+                gross_pnl REAL DEFAULT 0.0,
+                brokerage REAL DEFAULT 0.0,
+                taxes REAL DEFAULT 0.0,
+                net_pnl REAL DEFAULT 0.0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """)
+
         # Record migration version if empty
         cursor.execute("SELECT COUNT(*) as count FROM schema_migrations WHERE version = ?", (CURRENT_SCHEMA_VERSION,))
         if cursor.fetchone()["count"] == 0:

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Phase 5 - Realistic Paper Trading] - 2026-10-28
+
+### Added
+- Added `paper_trading/models.py` defining schemas for `PaperAccount`, `PaperPosition`, `PaperOrder`, `PaperTrade`, `OrderStatus`, `OrderType`, `TransactionType`, `ExitReason`, and `PaperOrderRequest`.
+- Added `paper_trading/execution.py` (`PaperExecutionSimulator`) simulating realistic adverse slippage, index strike selection (ATM, ITM 1/2, OTM 1/2), weekly expiry derivation, Black-Scholes fallback pricing, and Indian transaction costs (Groww ₹20/order, STT on sell 0.0625%, exchange turnover charges 0.05%, GST 18%, Stamp duty 0.003%, SEBI turnover charge).
+- Added `paper_trading/engine.py` (`PaperTradingEngine`) managing ₹10,000 virtual capital, active options buying positions, mark-to-market (MTM) calculations, target (TP) and stop-loss (SL) triggers, auto square-off at 15:15 IST, and hard risk limits (max 1 open position, max 5 trades/day, ₹500 max daily loss).
+- Added `paper_positions` table to SQLite schema in `database/db.py` to persist position state across restarts.
+- Added `paper_trading/router.py` with FastAPI endpoints (`/api/paper/account`, `/positions`, `/orders`, `/trades`, `/positions/{id}/close`, `/reset`, `/mtm-update`) and integrated into `app.py`.
+- Connected `StrategyManager.register_signal_listener` to route strategy `Signal` events directly into paper trading execution.
+- Added unit and API test suites in `tests/test_paper_trading.py` and `tests/test_paper_api.py`, achieving 64/64 passing tests across the entire platform.
+
 ## [Phase 4 - Backtesting Engine] - 2026-10-28
 
 ### Added

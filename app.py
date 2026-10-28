@@ -12,6 +12,7 @@ from database import get_schema_version, init_db
 from market_data import market_engine, market_router
 from strategies import strategy_manager, strategy_router
 from backtesting import backtest_router
+from paper_trading import paper_engine, paper_router
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info(f"Database ready. Current schema version: {schema_v}")
         await market_engine.start()
         strategy_manager.initialize_default_strategies()
+        strategy_manager.register_signal_listener(paper_engine.on_strategy_signal)
     except Exception as e:
         logger.critical(f"Failed to initialize database or market engine: {e}", exc_info=True)
         sys.exit(1)
@@ -54,6 +56,7 @@ app.add_middleware(
 app.include_router(market_router)
 app.include_router(strategy_router)
 app.include_router(backtest_router)
+app.include_router(paper_router)
 
 
 @app.get("/health")
