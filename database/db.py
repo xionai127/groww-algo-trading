@@ -207,6 +207,41 @@ def init_db() -> None:
             );
         """)
 
+        # 11. Trade Journal for reflection, tagging, and psychological review
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS trade_journal (
+                id TEXT PRIMARY KEY,
+                trade_id TEXT NOT NULL,
+                order_id TEXT,
+                mode TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                contract_symbol TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL,
+                entry_time TEXT NOT NULL,
+                exit_time TEXT,
+                gross_pnl REAL DEFAULT 0.0,
+                brokerage REAL DEFAULT 0.0,
+                taxes REAL DEFAULT 0.0,
+                net_pnl REAL DEFAULT 0.0,
+                return_pct REAL DEFAULT 0.0,
+                exit_reason TEXT,
+                strategy_id TEXT,
+                strategy_name TEXT,
+                tags_json TEXT NOT NULL DEFAULT '[]',
+                notes TEXT,
+                rating INTEGER,
+                mistake_flag INTEGER DEFAULT 0,
+                discipline_score INTEGER DEFAULT 100,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_journal_trade_id ON trade_journal (trade_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_journal_created_at ON trade_journal (created_at);")
+
         # Record migration version if empty
         cursor.execute("SELECT COUNT(*) as count FROM schema_migrations WHERE version = ?", (CURRENT_SCHEMA_VERSION,))
         if cursor.fetchone()["count"] == 0:

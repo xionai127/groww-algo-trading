@@ -21,9 +21,12 @@ def test_env(monkeypatch):
 
     monkeypatch.setattr(settings, "database_path", temp_path)
     init_db()
+    from risk_management import risk_manager
+    risk_manager.reset_circuit_breaker()
 
     yield
 
+    risk_manager.reset_circuit_breaker()
     if os.path.exists(temp_path):
         os.remove(temp_path)
 

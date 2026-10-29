@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Phase 6 - Centralized Risk Management & Journaling] - 2026-10-29
+
+### Added
+- Added `risk_management/models.py` defining schemas for `RiskAssessment`, `RiskDecision`, `RuleViolation`, `BreakerState`, `TradeTag`, `CircuitBreakerStatusResponse`, `DailyRiskStatus`, `JournalEntryResponse`, `JournalAnalytics`, and `DailyDisciplineScorecard`.
+- Added `risk_management/circuit_breaker.py` (`CircuitBreaker`) implementing manual and automated trading halts, kill-switch with SQLite persistence (`app_state`), audit logging, and consecutive loss tracking.
+- Added `risk_management/rules.py` implementing modular pre-flight evaluation: strict options buying only, Indian trading hours (09:15-15:30 IST), square-off restriction (past 15:10 IST), daily max loss limit (₹500 hard cap), max open positions (1), max daily trades (5), capital/cash verification, and risk-per-trade sizing.
+- Added `risk_management/journal.py` (`TradeJournalManager`) implementing SQLite trade reflection logging (`trade_journal` table), tags, emotional/psychological note-taking, mistake detection, performance analytics by tag, and automated daily discipline scorecards (grades A+ through F).
+- Added `risk_management/manager.py` (`RiskManager`) as the orchestrator linking pre-trade validation, circuit breaker, trade journal, and panic liquidation handlers.
+- Added `risk_management/router.py` with FastAPI endpoints (`/api/risk/status`, `/api/risk/breaker`, `/api/risk/validate`, `/api/risk/kill-switch`, `/api/risk/reset-breaker`, `/api/risk/events`, `/api/journal/entries`, `/api/journal/analytics`, `/api/journal/scorecard`) and registered with `app.py`.
+- Integrated `RiskManager` with `PaperTradingEngine` for pre-trade circuit breaker verification, automated post-trade exit journal logging, and emergency panic liquidation.
+- Added comprehensive unit and API tests in `tests/test_risk_management.py` and `tests/test_risk_journal_api.py`, expanding the test suite to 74/74 passing tests.
+
 ## [Phase 5 - Realistic Paper Trading] - 2026-10-28
 
 ### Added

@@ -71,9 +71,11 @@ def test_paper_order_and_positions_flow():
         assert single_pos.json()["id"] == pos_id
 
         # 4. Trigger MTM update within target and SL bounds
+        entry_price = data["position"]["entry_price"]
+        within_bounds_price = round(entry_price * 1.05, 2)
         mtm_resp = client.post(
             "/api/paper/mtm-update",
-            json={"symbol": "NIFTY", "spot": 25050.0, "option_quote_price": 75.0},
+            json={"symbol": "NIFTY", "spot": 25050.0, "option_quote_price": within_bounds_price},
         )
         assert mtm_resp.status_code == 200
         assert mtm_resp.json()["status"] == "success"

@@ -75,6 +75,12 @@ class PaperTradingEngine:
             self.account.is_trading_blocked = False
             self.account.blocked_reason = None
             self._save_account_state()
+            try:
+                from risk_management import risk_manager
+                if risk_manager.circuit_breaker.auto_tripped:
+                    risk_manager.reset_circuit_breaker(reason="Daily session rollover")
+            except Exception:
+                pass
             logger.info(f"Paper trading intraday counters rolled over for {day_str}.")
 
     def _load_state(self) -> None:
@@ -290,7 +296,16 @@ class PaperTradingEngine:
             self._log_risk_event("ORDER_REJECTED", order.rejection_reason, {"order_id": order.id, "symbol": symbol})
             return order, None
 
-        # 2. Check Hard Risk: Auto Square-Off Window
+        # 2. Check Circuit Breaker
+        from risk_management import risk_manager
+        if risk_manager.circuit_breaker.is_active():
+            order.status = OrderStatus.REJECTED
+            order.rejection_reason = f"Circuit breaker active: {risk_manager.circuit_breaker.trip_reason}"
+            self._record_order(order)
+            self._log_risk_event("CIRCUIT_BREAKER_ACTIVE", order.rejection_reason, {"order_id": order.id, "symbol": symbol})
+            return order, None
+
+        # 3. Check Hard Risk: Auto Square-Off Window
         if self._is_square_off_window(now):
             order.status = OrderStatus.REJECTED
             order.rejection_reason = "Square-off window active (15:15 - 15:30 IST); new orders prohibited."
@@ -303,7 +318,7 @@ class PaperTradingEngine:
             self._record_order(order)
             return order, None
 
-        # 3. Check Hard Risk: Max Open Positions
+        # 4. Check Hard Risk: Max Open Positions
         if len(self.open_positions) >= settings.max_open_positions:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"Max open positions limit ({settings.max_open_positions}) reached."
@@ -311,7 +326,7 @@ class PaperTradingEngine:
             self._log_risk_event("MAX_POSITIONS_BREACH", order.rejection_reason, {"open_count": len(self.open_positions)})
             return order, None
 
-        # 4. Check Hard Risk: Max Daily Trades
+        # 5. Check Hard Risk: Max Daily Trades
         if self.account.daily_trades_count >= settings.max_trades_per_day:
             order.status = OrderStatus.REJECTED
             order.rejection_reason = f"Max daily trades limit ({settings.max_trades_per_day}) reached."
@@ -319,7 +334,7 @@ class PaperTradingEngine:
             self._log_risk_event("MAX_TRADES_BREACH", order.rejection_reason, {"daily_trades": self.account.daily_trades_count})
             return order, None
 
-        # 5. Check Hard Risk: Max Daily Loss
+        # 6. Check Hard Risk: Max Daily Loss
         if self.account.daily_loss >= settings.max_daily_loss:
             self.account.is_trading_blocked = True
             self.account.blocked_reason = f"Daily max loss (₹{settings.max_daily_loss}) reached."
@@ -525,11 +540,49 @@ class PaperTradingEngine:
         self._recalculate_equity()
         self._save_account_state()
 
+        # Record trade exit in Centralized Risk Manager & Trade Journal
+        try:
+            from risk_management import risk_manager
+            risk_manager.record_trade_exit({
+                "trade_id": pos.id,
+                "order_id": None,
+                "mode": "PAPER",
+                "symbol": pos.symbol,
+                "contract_symbol": pos.contract_symbol,
+                "direction": pos.direction,
+                "quantity": pos.quantity,
+                "entry_price": pos.entry_price,
+                "exit_price": executed_exit,
+                "entry_time": pos.entry_time.isoformat() if isinstance(pos.entry_time, datetime) else str(pos.entry_time),
+                "exit_time": now.isoformat() if isinstance(now, datetime) else str(now),
+                "gross_pnl": gross_pnl,
+                "brokerage": total_brokerage,
+                "taxes": total_taxes,
+                "net_pnl": net_pnl,
+                "return_pct": ret_pct,
+                "exit_reason": reason,
+                "strategy_id": pos.strategy_id,
+                "daily_loss": self.account.daily_loss,
+            })
+        except Exception as e:
+            logger.error(f"Error logging trade exit to RiskManager: {e}", exc_info=True)
+
         logger.info(
             f"[PAPER EXECUTION] CLOSED {pos.contract_symbol} @ ₹{executed_exit:.2f} "
             f"Reason: {reason} | Net PnL: ₹{net_pnl:+.2f} ({ret_pct:+.2f}%)"
         )
         return pos
+
+    def close_all_open_positions(self, reason: str = "EMERGENCY_LIQUIDATION") -> List[PaperPosition]:
+        """Liquidates all open paper positions immediately."""
+        closed = []
+        for pos_id in list(self.open_positions.keys()):
+            try:
+                c = self.close_position(pos_id, reason=reason)
+                closed.append(c)
+            except Exception as e:
+                logger.error(f"Error liquidating position {pos_id}: {e}", exc_info=True)
+        return closed
 
     def update_market_price(
         self,
@@ -669,6 +722,11 @@ class PaperTradingEngine:
             conn.execute("DELETE FROM app_state WHERE key = 'paper_account_state';")
 
         self._save_account_state()
+        try:
+            from risk_management import risk_manager
+            risk_manager.reset_circuit_breaker(reason="Account reset")
+        except Exception:
+            pass
         return self.account
 
     def _record_order(self, order: PaperOrder) -> None:

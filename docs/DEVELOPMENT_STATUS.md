@@ -1,6 +1,6 @@
 # Development Status
 
-## Current Phase: PHASE 5 — REALISTIC PAPER TRADING (COMPLETED)
+## Current Phase: PHASE 6 — CENTRALIZED RISK MANAGEMENT & JOURNALING (COMPLETED)
 
 ### Completed Tasks:
 - [x] Verified project directory structure.
@@ -8,7 +8,7 @@
 - [x] Created `.gitignore` to prevent secret and database leaks.
 - [x] Created `.env.example` with standard defaults and placeholders.
 - [x] Implemented centralized configuration in `config.py` with Pydantic validation and structured logging.
-- [x] Implemented SQLite foundation in `database/db.py` with migration versioning, WAL mode, foreign keys, and audit logging.
+- [x] Implemented SQLite foundation in `database/db.py` with migration versioning, WAL mode, foreign keys, audit logging, and `trade_journal` table.
 - [x] Implemented application entry point and healthcheck endpoints in `app.py`.
 - [x] Implemented Market Data domain models (`Tick`, `Candle`, `OptionQuote`, `OptionChain`, `Timeframe`) in `market_data/models.py`.
 - [x] Implemented Black-Scholes pricing engine, IV solver, and Option Greeks (Delta, Gamma, Theta, Vega) in `market_data/greeks.py`.
@@ -39,7 +39,14 @@
 - [x] Added `paper_positions` table to SQLite schema in `database/db.py`.
 - [x] Implemented FastAPI paper trading endpoints (`/api/paper/account`, `/positions`, `/orders`, `/trades`, `/positions/{id}/close`, `/reset`, `/mtm-update`) in `paper_trading/router.py` and registered with `app.py`.
 - [x] Wired automated `StrategyManager` signal dispatching directly into `PaperTradingEngine`.
-- [x] Implemented automated test suite across all modules (64 of 64 tests passing).
+- [x] Implemented Risk Management and Journaling domain models in `risk_management/models.py`.
+- [x] Implemented Centralized Circuit Breaker with kill-switch, persistence, and audit logging in `risk_management/circuit_breaker.py`.
+- [x] Implemented Pre-Flight Rule checks (Options Buying Only, Market Hours, Square-Off Window, Daily Loss Cap, Max Trades, Capital Margin, Risk-Per-Trade Sizing) in `risk_management/rules.py`.
+- [x] Implemented Trade Journaling manager with tag tracking, psychological notes, mistake detection, and daily discipline scorecards in `risk_management/journal.py`.
+- [x] Implemented Centralized `RiskManager` coordinating safety and liquidation in `risk_management/manager.py`.
+- [x] Implemented FastAPI Risk and Journal endpoints (`/api/risk/*`, `/api/journal/*`) in `risk_management/router.py` and registered with `app.py`.
+- [x] Wired automated trade exit recording, liquidation handling, and circuit breaker checks with `PaperTradingEngine`.
+- [x] Implemented automated test suite across all modules (74 of 74 tests passing).
 
 ### Test Results:
 - `tests/test_app.py`: 2 passed
@@ -59,12 +66,13 @@
 - `tests/test_backtest_api.py`: 2 passed
 - `tests/test_paper_trading.py`: 10 passed
 - `tests/test_paper_api.py`: 2 passed
-- **Total: 64 passed in 2.25s**
+- `tests/test_risk_management.py`: 6 passed
+- `tests/test_risk_journal_api.py`: 4 passed
+- **Total: 74 passed in 2.32s**
 
 ### Pending Phases:
-- [ ] Phase 6: Centralized Risk Management & Journaling
 - [ ] Phase 7: Browser Dashboard
 - [ ] Phase 8: Groww API Integration & Live-Trading Readiness
 
 ### Next Step:
-- Ready to begin **PHASE 6 — CENTRALIZED RISK MANAGEMENT & JOURNALING**.
+- Ready to begin **PHASE 7 — BROWSER DASHBOARD**.
