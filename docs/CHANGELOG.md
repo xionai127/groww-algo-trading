@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Phase 7 - Browser Dashboard] - 2026-10-30
+
+### Added
+- Added `dashboard/index.html` providing a modern dark-themed algorithmic trading web terminal with 6 dedicated tabs:
+  - **Trading Terminal**: Real-time NIFTY/SENSEX ticker ribbon, interactive candlestick chart with timeframe selector (1m, 3m, 5m, 15m), live Option Chain with Greek analytics (Delta, Gamma, Theta, Vega), active position widget with one-click square-off, quick manual paper order placement drawer, and safety rule indicators.
+  - **Paper Portfolio**: Account capital metrics (₹10,000 starting allocation, cash balance, equity, realized/unrealized P&L), open positions table, completed trade history table, and order audit trail.
+  - **Strategy Lab**: Production strategy roster with dynamic on/off toggle switches, runtime status, and an interactive Strategy Builder for configuring technical rules (EMA, SMA, RSI, SuperTrend, VWAP), SL/TP targets, and strike preferences.
+  - **Backtesting Workbench**: Interactive backtest launcher, synthetic/cached candle seeder, KPI scorecard (Net Profit, Win Rate, Profit Factor, Max Drawdown, Sharpe/Sortino ratios), interactive HTML5 canvas equity curve with drawdown tracking, and trade log table.
+  - **Risk & Trade Journal**: Intraday risk health gauges (₹500 daily loss limit meter, 5-trades limit meter), daily discipline scorecard (grades A+ through F), psychological trade journal reflection desk with emotional tag editor (`FOMO`, `REVENGE_TRADING`, `DISCIPLINED`, etc.), and risk events safety log.
+  - **Settings & Broker Integration**: Groww API credentials manager (API key, secret, TOTP seed) with masked security, and platform trading parameter specifications.
+- Added `dashboard/css/dashboard.css` with a responsive dark terminal layout, glowing WebSocket pulse indicators, custom scrollbars, badges, switches, metric stat-boxes, modal overlays, and toast notifications.
+- Added `dashboard/js/chart.js` containing high-DPI HTML5 Canvas chart renderers: `CandleChart` (candlesticks, 20 EMA line overlay, volume bars, crosshairs, and dynamic tooltip) and `EquityChart` (smooth equity curve with gradient fill and baseline reference).
+- Added `dashboard/js/dashboard.js` implementing the frontend state machine, auto-reconnecting WebSocket client (`/api/market/ws`), REST API client, modals, toast system, and clock.
+- Added `dashboard/router.py` with FastAPI endpoints (`/api/system/summary` and `/api/system/credentials` with masked secrets and SQLite persistence) and registered in `app.py`.
+- Mounted static dashboard assets and root `/` and `/dashboard` routes in `app.py`.
+- Added unit and API tests in `tests/test_dashboard_api.py`, bringing total tests to 79/79 passing.
+
 ## [Phase 6 - Centralized Risk Management & Journaling] - 2026-10-29
 
 ### Added

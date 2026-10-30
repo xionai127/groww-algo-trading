@@ -14,6 +14,10 @@ from strategies import strategy_manager, strategy_router
 from backtesting import backtest_router
 from paper_trading import paper_engine, paper_router
 from risk_management import risk_manager, risk_router
+from dashboard import dashboard_router
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 
 @asynccontextmanager
@@ -60,6 +64,19 @@ app.include_router(strategy_router)
 app.include_router(backtest_router)
 app.include_router(paper_router)
 app.include_router(risk_router)
+app.include_router(dashboard_router)
+
+# Mount Dashboard frontend
+DASHBOARD_DIR = Path(__file__).resolve().parent / "dashboard"
+if DASHBOARD_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(DASHBOARD_DIR)), name="static")
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/dashboard", include_in_schema=False)
+    def serve_dashboard():
+        """Serves the main algorithmic trading dashboard."""
+        index_file = DASHBOARD_DIR / "index.html"
+        return FileResponse(str(index_file))
 
 
 @app.get("/health")

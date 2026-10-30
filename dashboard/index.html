@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Groww Algo Trading Platform</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+  <!-- ==========================================
+       TOP APP HEADER
+       ========================================== -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo">
+        <div class="brand-icon">G</div>
+        <span>GROWW ALGO</span>
+      </div>
+      <span class="badge-version">v0.1.0</span>
+    </div>
+
+    <div class="header-status-group">
+      <!-- WS Status -->
+      <div id="ws-status-pill" class="status-pill offline">
+        <span class="pulse-dot"></span>
+        <span id="ws-status-text">CONNECTING</span>
+      </div>
+
+      <!-- Execution Mode -->
+      <span id="execution-mode-badge" class="mode-badge mode-paper">PAPER</span>
+
+      <!-- Circuit Breaker -->
+      <span id="circuit-breaker-badge" class="breaker-badge breaker-normal">NORMAL</span>
+
+      <!-- Quick Equity / PnL -->
+      <div style="font-family: var(--font-mono); font-size: 12px; margin-left: 8px;">
+        <span style="color: var(--text-dim);">EQUITY:</span>
+        <strong id="header-capital-display">₹10,000.00</strong>
+        <span id="header-pnl-display" class="text-green" style="margin-left: 6px;">+₹0.00</span>
+      </div>
+
+      <!-- IST Clock -->
+      <div id="ist-clock" class="clock-display">--:--:-- IST</div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btn-reset-breaker-nav" class="btn btn-sm btn-warning" style="display:none;" onclick="resetCircuitBreaker()">
+        Reset Breaker
+      </button>
+      <button class="btn btn-sm btn-secondary" onclick="resetPaperAccount()">
+        Reset Paper
+      </button>
+      <button class="btn btn-sm btn-danger" onclick="openModal('modal-kill-switch')">
+        ⚠️ Kill Switch
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       NAVIGATION TABS BAR
+       ========================================== -->
+  <nav class="nav-tabs-bar">
+    <button class="tab-btn active" data-tab="terminal">📈 Terminal</button>
+    <button class="tab-btn" data-tab="portfolio">💼 Paper Portfolio</button>
+    <button class="tab-btn" data-tab="strategies">⚡ Strategy Lab</button>
+    <button class="tab-btn" data-tab="backtest">🔬 Backtesting</button>
+    <button class="tab-btn" data-tab="risk">🛡️ Risk & Journal</button>
+    <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+  </nav>
+
+  <!-- ==========================================
+       MAIN CONTENT CONTAINER
+       ========================================== -->
+  <main class="main-content">
+
+    <!-- ----------------------------------------
+         TAB 1: TRADING TERMINAL
+         ---------------------------------------- -->
+    <div id="tab-terminal" class="tab-pane active">
+      <!-- Ticker Ribbon -->
+      <div class="ticker-ribbon">
+        <div class="ticker-card">
+          <div>
+            <div class="ticker-name">
+              <span>NIFTY 50</span>
+              <span class="badge badge-blue">INDEX</span>
+            </div>
+            <div class="ticker-sub">Lot Size: 25 • Weekly Expiry</div>
+          </div>
+          <div class="ticker-price-block">
+            <div id="ticker-nifty-ltp" class="ticker-ltp">24,500.00</div>
+            <div id="ticker-nifty-chg" class="ticker-change text-green">+50.00 (+0.20%)</div>
+          </div>
+        </div>
+
+        <div class="ticker-card">
+          <div>
+            <div class="ticker-name">
+              <span>SENSEX</span>
+              <span class="badge badge-purple">BSE INDEX</span>
+            </div>
+            <div class="ticker-sub">Lot Size: 10 • Weekly Expiry</div>
+          </div>
+          <div class="ticker-price-block">
+            <div id="ticker-sensex-ltp" class="ticker-ltp">80,500.00</div>
+            <div id="ticker-sensex-chg" class="ticker-change text-green">+200.00 (+0.25%)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Terminal Grid -->
+      <div class="grid-2col">
+        <!-- Left: Candlestick Chart & Option Chain -->
+        <div>
+          <!-- Candlestick Chart Card -->
+          <div class="card">
+            <div class="chart-toolbar">
+              <div style="display:flex; align-items:center; gap: 8px;">
+                <div class="btn-group">
+                  <button class="btn-grp-item btn-grp-symbol active" data-symbol="NIFTY">NIFTY</button>
+                  <button class="btn-grp-item btn-grp-symbol" data-symbol="SENSEX">SENSEX</button>
+                </div>
+                <div class="btn-group">
+                  <button class="btn-grp-item btn-grp-tf" data-tf="1m">1m</button>
+                  <button class="btn-grp-item btn-grp-tf" data-tf="3m">3m</button>
+                  <button class="btn-grp-item btn-grp-tf active" data-tf="5m">5m</button>
+                  <button class="btn-grp-item btn-grp-tf" data-tf="15m">15m</button>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap: 10px; font-size: 11px; color: var(--text-dim);">
+                <span><strong style="color:#38bdf8;">—</strong> 20 EMA</span>
+                <span>Volume Bars</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="market-candle-canvas" class="chart-canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Live Option Chain Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Live Option Chain & Greeks</span>
+              <span id="chain-atm-label" class="badge badge-amber">ATM Strike: 24500</span>
+            </div>
+            <div class="chain-table-container">
+              <table class="chain-table">
+                <thead>
+                  <tr>
+                    <th colspan="5" style="text-align:center; color:var(--color-green); border-bottom:2px solid var(--color-green);">CALLS (CE)</th>
+                    <th class="strike-col" style="border-bottom:2px solid var(--border-subtle);">STRIKE</th>
+                    <th colspan="5" style="text-align:center; color:var(--color-red); border-bottom:2px solid var(--color-red);">PUTS (PE)</th>
+                  </tr>
+                  <tr>
+                    <!-- CE Headers -->
+                    <th>Delta</th>
+                    <th>Theta</th>
+                    <th>IV</th>
+                    <th>LTP</th>
+                    <th style="text-align:center;">Action</th>
+                    <!-- Strike Header -->
+                    <th class="strike-col">Price</th>
+                    <!-- PE Headers -->
+                    <th style="text-align:center;">Action</th>
+                    <th>LTP</th>
+                    <th>IV</th>
+                    <th>Theta</th>
+                    <th>Delta</th>
+                  </tr>
+                </thead>
+                <tbody id="option-chain-body">
+                  <!-- Populated dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Active Position & Order Controls -->
+        <div>
+          <!-- Active Open Position Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Active Position (Max 1)</span>
+              <span class="badge badge-blue">INTRADAY</span>
+            </div>
+            <div id="active-position-card-content" class="card-body">
+              <!-- Populated dynamically via JS -->
+            </div>
+          </div>
+
+          <!-- Quick Manual Order Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Quick Paper Order</span>
+              <span class="badge badge-green">OPTIONS BUYING ONLY</span>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Instrument</label>
+                  <select id="quick-order-symbol" class="form-control">
+                    <option value="NIFTY">NIFTY 50</option>
+                    <option value="SENSEX">SENSEX</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Option Type</label>
+                  <select id="quick-order-dir" class="form-control">
+                    <option value="CE">CALL (CE)</option>
+                    <option value="PE">PUT (PE)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Strike Type</label>
+                  <select id="quick-order-strike-pref" class="form-control">
+                    <option value="ATM">ATM (At-The-Money)</option>
+                    <option value="ITM_1">ITM 1 (In-The-Money)</option>
+                    <option value="OTM_1">OTM 1 (Out-of-The-Money)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Quantity</label>
+                  <input type="number" id="quick-order-qty" class="form-control" value="25" step="25" min="25">
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width:100%; margin-top:6px;" onclick="
+                quickOrder(
+                  document.getElementById('quick-order-symbol').value,
+                  STATE.optionChain ? STATE.optionChain.atm_strike : 24500,
+                  document.getElementById('quick-order-dir').value
+                )
+              ">
+                Configure & Submit Order
+              </button>
+            </div>
+          </div>
+
+          <!-- Risk Boundaries Card -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Pre-Flight Risk Rules</span>
+              <span class="badge badge-green">ACTIVE</span>
+            </div>
+            <div class="card-body" style="font-size:12px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-dim);">Direction:</span>
+                <span class="text-green font-mono">Options Buying Only</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-dim);">Option Selling:</span>
+                <span class="text-red font-mono">Strictly Disabled</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-dim);">Trading Hours:</span>
+                <span class="font-mono">09:15 – 15:30 IST</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-dim);">Auto Square-Off:</span>
+                <span class="text-amber font-mono">15:15 IST</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-dim);">Max Loss Limit:</span>
+                <span class="font-mono">₹500 / Day</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:var(--text-dim);">Max Trades:</span>
+                <span class="font-mono">5 / Day</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------
+         TAB 2: PAPER PORTFOLIO & ORDERS
+         ---------------------------------------- -->
+    <div id="tab-portfolio" class="tab-pane">
+      <!-- Portfolio Metrics Grid -->
+      <div class="grid-4col" style="margin-bottom:16px;">
+        <div class="stat-box">
+          <div class="stat-label">Initial Capital</div>
+          <div id="paper-capital-val" class="stat-value">₹10,000</div>
+          <div class="stat-sub">Virtual Allocation</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Available Balance</div>
+          <div id="paper-balance-val" class="stat-value">₹10,000.00</div>
+          <div class="stat-sub">Free Margin</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total Equity</div>
+          <div id="paper-equity-val" class="stat-value">₹10,000.00</div>
+          <div class="stat-sub">Cash + Position MTM</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Realized P&L</div>
+          <div id="paper-realized-val" class="stat-value text-green">+₹0.00</div>
+          <div class="stat-sub">Net after charges</div>
+        </div>
+      </div>
+
+      <!-- Open Positions Table -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Open Positions</span>
+          <button class="btn btn-sm btn-secondary" onclick="loadPaperPortfolio()">Refresh</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Contract</th>
+                <th>Type</th>
+                <th>Qty</th>
+                <th>Entry Price</th>
+                <th>LTP</th>
+                <th>Unrealized P&L</th>
+                <th>Stop Loss</th>
+                <th>Target</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="open-positions-table-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Closed Trades History -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Executed Trades History</span>
+        </div>
+        <div style="overflow-x:auto; max-height:360px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Side</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Brokerage + Tax</th>
+                <th>Net P&L</th>
+              </tr>
+            </thead>
+            <tbody id="trades-table-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders Audit Log -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Order Audit Trail</span>
+        </div>
+        <div style="overflow-x:auto; max-height:280px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Instrument</th>
+                <th>Action</th>
+                <th>Qty</th>
+                <th>Status</th>
+                <th>Details / Reason</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------
+         TAB 3: STRATEGY LAB
+         ---------------------------------------- -->
+    <div id="tab-strategies" class="tab-pane">
+      <div class="grid-2col">
+        <!-- Active Strategies List -->
+        <div>
+          <div class="card-header" style="background:none; border:none; padding: 0 0 12px 0;">
+            <span class="card-title" style="color:#fff;">Production Strategies</span>
+            <button class="btn btn-sm btn-secondary" onclick="loadStrategies()">Refresh</button>
+          </div>
+          <div id="strategy-cards-container">
+            <!-- Strategy cards inserted via JS -->
+          </div>
+        </div>
+
+        <!-- Strategy Builder Panel -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Strategy Builder</span>
+              <span class="badge badge-blue">RULE ENGINE</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Strategy Name</label>
+                <input type="text" id="builder-name" class="form-control" placeholder="e.g. VWAP Scalper 5m">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Underlying</label>
+                  <select id="builder-symbol" class="form-control">
+                    <option value="NIFTY">NIFTY 50</option>
+                    <option value="SENSEX">SENSEX</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Timeframe</label>
+                  <select id="builder-tf" class="form-control">
+                    <option value="1m">1 minute</option>
+                    <option value="3m">3 minutes</option>
+                    <option value="5m" selected>5 minutes</option>
+                    <option value="15m">15 minutes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Strike Selection</label>
+                  <select id="builder-strike-pref" class="form-control">
+                    <option value="ATM">ATM (At The Money)</option>
+                    <option value="ITM_1">ITM 1 (Slightly In The Money)</option>
+                    <option value="OTM_1">OTM 1 (Slightly Out of The Money)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Stop-Loss %</label>
+                  <input type="number" id="builder-sl" class="form-control" value="10.0" step="1">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Target %</label>
+                  <input type="number" id="builder-tp" class="form-control" value="20.0" step="1">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Indicator 1</label>
+                <select id="builder-ind1" class="form-control">
+                  <option value="EMA_9">EMA (Period: 9)</option>
+                  <option value="EMA_21">EMA (Period: 21)</option>
+                  <option value="RSI_14">RSI (Period: 14)</option>
+                  <option value="SUPERTREND">SuperTrend (10, 3)</option>
+                  <option value="VWAP">VWAP</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Condition</label>
+                <select id="builder-operator" class="form-control">
+                  <option value="CROSSES_ABOVE">Crosses Above</option>
+                  <option value="CROSSES_BELOW">Crosses Below</option>
+                  <option value="GREATER_THAN">Greater Than</option>
+                  <option value="LESS_THAN">Less Than</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Signal Action</label>
+                <select id="builder-action" class="form-control">
+                  <option value="BUY_CE">Buy Call Option (CE)</option>
+                  <option value="BUY_PE">Buy Put Option (PE)</option>
+                </select>
+              </div>
+
+              <button class="btn btn-success" style="width:100%; margin-top:8px;" onclick="showToast('Custom strategy saved to Strategy Lab', 'success')">
+                Save & Deploy Strategy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------
+         TAB 4: BACKTESTING WORKBENCH
+         ---------------------------------------- -->
+    <div id="tab-backtest" class="tab-pane">
+      <div class="grid-2col">
+        <!-- Backtest Config Form -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Backtest Configuration</span>
+            <button class="btn btn-sm btn-secondary" onclick="seedBacktestCandles()">Seed Intraday Data</button>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Strategy</label>
+              <select id="backtest-strategy-select" class="form-control">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Instrument</label>
+                <select id="backtest-symbol-select" class="form-control">
+                  <option value="NIFTY">NIFTY 50</option>
+                  <option value="SENSEX">SENSEX</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Timeframe</label>
+                <select id="backtest-tf-select" class="form-control">
+                  <option value="1m">1m</option>
+                  <option value="3m">3m</option>
+                  <option value="5m" selected>5m</option>
+                  <option value="15m">15m</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Strike Preference</label>
+                <select id="backtest-strike-select" class="form-control">
+                  <option value="ATM">ATM (At-The-Money)</option>
+                  <option value="ITM_1">ITM 1</option>
+                  <option value="OTM_1">OTM 1</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Capital (₹)</label>
+                <input type="number" id="backtest-capital-input" class="form-control" value="10000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Slippage %</label>
+                <input type="number" id="backtest-slippage-input" class="form-control" value="0.5" step="0.1">
+              </div>
+            </div>
+
+            <button id="btn-run-backtest" class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="runBacktest()">
+              Run Backtest
+            </button>
+          </div>
+        </div>
+
+        <!-- Backtest Performance KPI Cards -->
+        <div>
+          <div class="grid-3col" style="gap:10px; margin-bottom:12px;">
+            <div class="stat-box">
+              <div class="stat-label">Net Profit</div>
+              <div id="bt-net-pnl" class="stat-value text-green">+₹0.00</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Win Rate</div>
+              <div id="bt-win-rate" class="stat-value">0.0%</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Total Trades</div>
+              <div id="bt-trades-count" class="stat-value">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Profit Factor</div>
+              <div id="bt-profit-factor" class="stat-value">0.00</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Max Drawdown</div>
+              <div id="bt-max-dd" class="stat-value text-red">0.0%</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Sharpe Ratio</div>
+              <div id="bt-sharpe" class="stat-value">0.00</div>
+            </div>
+          </div>
+
+          <div style="font-size:11px; color:var(--text-dim); text-align:right;">
+            Includes Groww ₹20/order, STT 0.0625%, Exchange 0.05%, GST 18%, Stamp duty.
+          </div>
+        </div>
+      </div>
+
+      <!-- Equity Curve Card -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <span class="card-title">Backtest Equity Curve</span>
+          <span style="font-size:11px; color:var(--text-dim);">Hover over curve for points & drawdowns</span>
+        </div>
+        <div class="chart-container" style="height:320px;">
+          <canvas id="backtest-equity-canvas" class="chart-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Backtest Trade Log Table -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Backtest Execution Log</span>
+        </div>
+        <div style="overflow-x:auto; max-height:300px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Contract</th>
+                <th>Entry Price</th>
+                <th>Exit Price</th>
+                <th>Charges</th>
+                <th>Net P&L</th>
+                <th>Exit Reason</th>
+              </tr>
+            </thead>
+            <tbody id="backtest-trades-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------
+         TAB 5: RISK MANAGEMENT & TRADE JOURNAL
+         ---------------------------------------- -->
+    <div id="tab-risk" class="tab-pane">
+      <div class="grid-2col">
+        <!-- Daily Risk Meters -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Intraday Risk Health</span>
+            <span class="badge badge-green">SAFE</span>
+          </div>
+          <div class="card-body">
+            <!-- Daily Loss Limit -->
+            <div style="margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <span>Daily Max Loss (Hard Stop ₹500)</span>
+                <span id="daily-loss-text" class="font-mono">₹0.0 / ₹500.0</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div id="daily-loss-progress" class="progress-bar-fill" style="width:0%; background:var(--color-amber);"></div>
+              </div>
+            </div>
+
+            <!-- Daily Trades Limit -->
+            <div style="margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <span>Daily Trades Limit (Max 5)</span>
+                <span id="daily-trades-text" class="font-mono">0 / 5 trades</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div id="daily-trades-progress" class="progress-bar-fill" style="width:0%; background:var(--color-blue);"></div>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-input); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle); font-size:11px; color:var(--text-muted);">
+              <strong>Automatic Safety Enforcement:</strong> The centralized Circuit Breaker automatically rejects any new orders if the ₹500 daily loss cap is breached, or if 5 trades have already been executed today.
+            </div>
+          </div>
+        </div>
+
+        <!-- Discipline Scorecard -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Daily Discipline Scorecard</span>
+            <span class="badge badge-blue">TODAY</span>
+          </div>
+          <div class="card-body" style="display:flex; align-items:center; gap:20px;">
+            <div id="scorecard-grade-badge" class="grade-badge grade-A">A+</div>
+            <div>
+              <div id="scorecard-score-pct" style="font-size:16px; font-weight:700; color:#fff;">100.0% Discipline Score</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                Rules Followed: <strong id="scorecard-rules-followed" class="text-green">YES</strong> • Mistakes: <strong id="scorecard-mistakes-count">0</strong>
+              </div>
+              <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">
+                Evaluates FOMO, revenge trading, and trading plan adherence.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trade Journal & Tagging Table -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Trade Reflection & Psychological Journal</span>
+          <button class="btn btn-sm btn-secondary" onclick="loadRiskAndJournal()">Refresh</button>
+        </div>
+        <div style="overflow-x:auto; max-height:320px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Contract</th>
+                <th>Exit Reason</th>
+                <th>Net P&L</th>
+                <th>Psychological Tags</th>
+                <th>Reflection Notes</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="journal-entries-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Risk Events Log -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Risk Violations & Safety Audit Log</span>
+        </div>
+        <div style="overflow-x:auto; max-height:240px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Event</th>
+                <th>Reason</th>
+                <th>Mode</th>
+              </tr>
+            </thead>
+            <tbody id="risk-events-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ----------------------------------------
+         TAB 6: SETTINGS & BROKER INTEGRATION
+         ---------------------------------------- -->
+    <div id="tab-settings" class="tab-pane">
+      <div class="grid-2col">
+        <!-- Groww API Configuration Card -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Groww Broker Credentials</span>
+            <span id="broker-status-badge" class="badge badge-amber">CHECKING</span>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Groww API Key</label>
+              <input type="text" id="cfg-api-key" class="form-control" placeholder="Enter API Key">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Groww API Secret</label>
+              <input type="password" id="cfg-api-secret" class="form-control" placeholder="Enter API Secret">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Groww TOTP Secret / Seed</label>
+              <input type="password" id="cfg-totp-key" class="form-control" placeholder="Enter TOTP Key for 2FA">
+            </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="saveCredentials()">
+              Save Credentials
+            </button>
+          </div>
+        </div>
+
+        <!-- Platform System Configuration -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Platform Specifications</span>
+            <span class="badge badge-blue">SYSTEM</span>
+          </div>
+          <div class="card-body" style="font-size:12px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Starting Capital:</span>
+              <span class="font-mono">₹10,000.00</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Risk Per Trade:</span>
+              <span class="font-mono">₹100.00</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Daily Loss Cap:</span>
+              <span class="font-mono text-red">₹500.00</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Max Daily Trades:</span>
+              <span class="font-mono">5 Trades</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Default Stop Loss:</span>
+              <span class="font-mono">10.0%</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Default Target:</span>
+              <span class="font-mono">20.0%</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Trading Engine:</span>
+              <span class="font-mono">FastAPI + Async Market Aggregator</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-dim);">Database:</span>
+              <span class="font-mono">SQLite (WAL Mode)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       MODALS
+       ========================================== -->
+
+  <!-- Modal: Emergency Kill Switch -->
+  <div id="modal-kill-switch" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title" style="color:var(--color-red);">⚠️ Emergency Kill Switch</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:12px; color:var(--text-muted);">
+          Activating the kill switch immediately trips the centralized circuit breaker, halts automated strategy execution, and prevents all new orders.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Reason for Emergency Stop</label>
+          <input type="text" id="kill-switch-reason" class="form-control" value="Manual emergency halt from dashboard">
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input type="checkbox" id="kill-switch-liquidate" checked>
+          <label for="kill-switch-liquidate" style="font-size:12px; color:#fff;">Immediately liquidate all open positions (Panic Square-Off)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-danger" onclick="triggerKillSwitch()">Engage Kill Switch</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quick Order -->
+  <div id="modal-quick-order" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">Confirm Paper Order</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Instrument</label>
+            <input type="text" id="order-symbol" class="form-control" readonly>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Strike</label>
+            <input type="number" id="order-strike" class="form-control" readonly>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Direction</label>
+            <input type="text" id="order-direction" class="form-control" readonly>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity</label>
+            <input type="number" id="order-qty" class="form-control" value="25" min="25" step="25">
+          </div>
+        </div>
+        <p style="font-size:11px; color:var(--text-dim); margin-top:8px;">
+          * Orders are pre-flight validated against the ₹500 daily loss cap, trading hours, and maximum open position limit.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-success" onclick="submitManualOrder()">Submit Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Journal Note Edit -->
+  <div id="modal-journal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">Trade Reflection & Psychology</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Psychological Tags (comma-separated)</label>
+          <input type="text" id="journal-tags-input" class="form-control" placeholder="DISCIPLINED, PLAN_FOLLOWED, FOMO, REVENGE_TRADING">
+          <div style="font-size:10px; color:var(--text-dim); margin-top:3px;">
+            Suggested: DISCIPLINED, PLAN_FOLLOWED, FOMO, REVENGE_TRADING, HESITATION, GREED
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Trader Notes & Post-Mortem</label>
+          <textarea id="journal-notes-input" class="form-control" rows="4" placeholder="What went well? Did I follow rules? Any emotional urges?"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-primary" onclick="saveJournalNote()">Save Reflection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/chart.js"></script>
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
