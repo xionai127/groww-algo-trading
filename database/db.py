@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 from config import logger, settings
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 def get_db_path() -> Path:
@@ -242,13 +242,50 @@ def init_db() -> None:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_journal_trade_id ON trade_journal (trade_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_journal_created_at ON trade_journal (created_at);")
 
+        # 12. Live Positions tracking (Phase 8 - Groww API Live Execution)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS live_positions (
+                id TEXT PRIMARY KEY,
+                broker_order_id TEXT,
+                strategy_id TEXT,
+                symbol TEXT NOT NULL,
+                contract_symbol TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                strike_price REAL NOT NULL,
+                expiry_date TEXT NOT NULL,
+                quantity INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                entry_spot REAL NOT NULL,
+                entry_time TEXT NOT NULL,
+                current_price REAL NOT NULL,
+                current_spot REAL NOT NULL,
+                unrealized_pnl REAL NOT NULL,
+                return_pct REAL NOT NULL,
+                target_price REAL,
+                stop_loss_price REAL,
+                target_pct REAL,
+                stop_loss_pct REAL,
+                is_open INTEGER NOT NULL DEFAULT 1,
+                exit_time TEXT,
+                exit_price REAL,
+                exit_reason TEXT,
+                gross_pnl REAL DEFAULT 0.0,
+                brokerage REAL DEFAULT 0.0,
+                taxes REAL DEFAULT 0.0,
+                net_pnl REAL DEFAULT 0.0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_live_pos_open ON live_positions (is_open);")
+
         # Record migration version if empty
         cursor.execute("SELECT COUNT(*) as count FROM schema_migrations WHERE version = ?", (CURRENT_SCHEMA_VERSION,))
         if cursor.fetchone()["count"] == 0:
             now_iso = datetime.now(timezone.utc).isoformat()
             cursor.execute(
                 "INSERT INTO schema_migrations (version, applied_at, description) VALUES (?, ?, ?)",
-                (CURRENT_SCHEMA_VERSION, now_iso, "Phase 1 initial schema")
+                (CURRENT_SCHEMA_VERSION, now_iso, "Phase 8 Live Execution schema")
             )
 
     logger.info("Database schema initialized successfully.")

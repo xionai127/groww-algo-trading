@@ -1037,3 +1037,106 @@ async function saveJournalNote() {
     showToast(err.message, 'error');
   }
 }
+
+function onModeSelectChange(mode) {
+  const container = document.getElementById('live-confirmation-container');
+  if (container) {
+    container.style.display = mode === 'LIVE' ? 'block' : 'none';
+  }
+}
+
+async function confirmSwitchMode() {
+  const select = document.getElementById('select-execution-mode');
+  const targetMode = select.value;
+  let confirmation = undefined;
+
+  if (targetMode === 'LIVE') {
+    const input = document.getElementById('live-confirmation-input');
+    confirmation = input ? input.value.trim() : '';
+    if (confirmation !== 'CONFIRM_LIVE_TRADING') {
+      showToast('You must type CONFIRM_LIVE_TRADING to enable Live trading', 'error');
+      return;
+    }
+  }
+
+  try {
+    const res = await fetch('/api/execution/mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: targetMode, confirmation }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || 'Failed to switch execution mode');
+    }
+
+    showToast(`Switched mode to ${targetMode}`, 'success');
+    closeModal('modal-switch-mode');
+    await updateHeaderSummary();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function testBrokerConnection() {
+  const resultBox = document.getElementById('broker-test-result');
+  if (resultBox) {
+    resultBox.style.display = 'block';
+    resultBox.style.color = 'var(--text-muted)';
+    resultBox.innerHTML = 'Connecting to Groww API...';
+  }
+
+  try {
+    const res = await fetch('/api/execution/auth/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    const data = await res.json();
+    if (data.is_connected) {
+      showToast('Groww connection verified!', 'success');
+      const badge = document.getElementById('broker-status-badge');
+      if (badge) {
+        badge.textContent = 'CONNECTED';
+        badge.className = 'badge badge-green';
+      }
+
+      // Also fetch margin
+      let marginText = '';
+      try {
+        const mRes = await fetch('/api/execution/margin');
+        const mData = await mRes.json();
+        if (mData.status === 'success') {
+          marginText = `<br>Available Margin: <strong>₹${Number(mData.available_margin).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>`;
+        }
+      } catch (mErr) {
+        // Optional
+      }
+
+      if (resultBox) {
+        resultBox.style.color = 'var(--color-green)';
+        resultBox.innerHTML = `<strong>Status: Connected</strong>${marginText}`;
+      }
+    } else {
+      const errMsg = data.error || 'Connection failed';
+      showToast(errMsg, 'error');
+      const badge = document.getElementById('broker-status-badge');
+      if (badge) {
+        badge.textContent = 'DISCONNECTED';
+        badge.className = 'badge badge-red';
+      }
+      if (resultBox) {
+        resultBox.style.color = 'var(--color-red)';
+        resultBox.innerHTML = `<strong>Connection Failed:</strong> ${errMsg}`;
+      }
+    }
+  } catch (err) {
+    showToast(`Broker test failed: ${err.message}`, 'error');
+    if (resultBox) {
+      resultBox.style.color = 'var(--color-red)';
+      resultBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+    }
+  }
+}

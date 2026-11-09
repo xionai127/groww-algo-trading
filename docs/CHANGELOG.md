@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Phase 8 - Groww API Integration & Live-Trading Readiness] - 2026-11-09
+
+### Added
+- Added `execution/models.py` defining schemas for `LiveOrderRequest`, `LiveOrderResponse`, `LivePosition`, `LiveAccountSummary`, `ExecutionModeToggleRequest`, `BrokerAuthRequest`, and `BrokerAuthStatus`.
+- Added `execution/broker_client.py` (`GrowwBrokerClient`) wrapping official `growwapi.GrowwAPI` SDK with TOTP generation (`pyotp.TOTP`), automated session token acquisition, profile verification, live margin retrieval, F&O options buy order placement (strictly Options Buying only), sell exit order placement, order cancellations, and position fetching.
+- Added `execution/engine.py` (`LiveExecutionEngine`) coordinating live broker order execution, strict `LIVE` mode isolation, circuit breaker validation, pre-flight safety gates (market hours, square-off cutoffs, ₹500 daily loss cap, 5 trades/day limit, 1 max open position), target (+20%) and stop-loss (-10%) automated monitoring, 15:15 IST auto square-off, emergency panic liquidation, and SQLite/journal audit logging.
+- Added `live_positions` table to SQLite schema with version 2 migration tracking in `database/db.py`.
+- Added `execution/router.py` with FastAPI endpoints (`/api/execution/status`, `/api/execution/mode`, `/api/execution/auth/test`, `/api/execution/margin`, `/api/execution/positions`, `/api/execution/orders`, `/api/execution/order`, `/api/execution/positions/{id}/close`, `/api/execution/square-off-all`) with explicit safety confirmation (`CONFIRM_LIVE_TRADING`) required for switching to `LIVE` mode.
+- Integrated unified signal dispatching and panic liquidation handlers in `app.py` linking `StrategyManager` and `RiskManager` with `LiveExecutionEngine` and `PaperTradingEngine`.
+- Updated Dashboard UI (`dashboard/index.html` and `dashboard/js/dashboard.js`) with Live Mode switch modal, warning acknowledgement dialog, and "Test Groww Connection" button with real-time connection feedback and margin display.
+- Added comprehensive unit and API test suites in `tests/test_execution.py` and `tests/test_execution_api.py`, expanding the test suite to 92/92 passing tests.
+
 ## [Phase 7 - Browser Dashboard] - 2026-10-30
 
 ### Added

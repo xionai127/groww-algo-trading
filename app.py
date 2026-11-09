@@ -1,8 +1,9 @@
 """Application entry point and FastAPI server for Groww Algo Trading Platform."""
 
+import asyncio
 import sys
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Dict
+from typing import Any, AsyncGenerator, Dict, Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -14,6 +15,7 @@ from strategies import strategy_manager, strategy_router
 from backtesting import backtest_router
 from paper_trading import paper_engine, paper_router
 from risk_management import risk_manager, risk_router
+from execution import execution_router, live_engine
 from dashboard import dashboard_router
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,8 +32,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info(f"Database ready. Current schema version: {schema_v}")
         await market_engine.start()
         strategy_manager.initialize_default_strategies()
-        strategy_manager.register_signal_listener(paper_engine.on_strategy_signal)
-        risk_manager.register_liquidation_handler(paper_engine.close_all_open_positions)
+
+        # Unified signal listener respecting ExecutionMode
+        async def unified_signal_dispatcher(signal: Any, quote: Optional[Any] = None) -> None:
+            if settings.execution_mode == ExecutionMode.LIVE:
+                await live_engine.on_strategy_signal(signal, quote)
+            elif settings.execution_mode == ExecutionMode.PAPER:
+                paper_engine.on_strategy_signal(signal, quote)
+            else:
+                logger.info(
+                    f"ANALYSIS mode active: Signal detected {signal.underlying} {signal.direction} "
+                    f"action={signal.action.value} (execution suppressed)"
+                )
+
+        strategy_manager.register_signal_listener(unified_signal_dispatcher)
+
+        # Unified liquidation handler
+        def unified_liquidation_handler() -> Dict[str, Any]:
+            closed_paper = paper_engine.close_all_open_positions(reason="PANIC_LIQUIDATION")
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(live_engine.close_all_live_positions(reason="PANIC_LIQUIDATION"))
+            except Exception as e:
+                logger.error(f"Error triggering live liquidation: {e}")
+            return {"paper_closed": len(closed_paper)}
+
+        risk_manager.register_liquidation_handler(unified_liquidation_handler)
     except Exception as e:
         logger.critical(f"Failed to initialize database or market engine: {e}", exc_info=True)
         sys.exit(1)
@@ -63,6 +90,7 @@ app.include_router(market_router)
 app.include_router(strategy_router)
 app.include_router(backtest_router)
 app.include_router(paper_router)
+app.include_router(execution_router)
 app.include_router(risk_router)
 app.include_router(dashboard_router)
 

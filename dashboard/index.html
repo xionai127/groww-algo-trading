@@ -45,6 +45,9 @@
     </div>
 
     <div class="header-actions">
+      <button class="btn btn-sm btn-outline" style="border:1px solid var(--border-color); color:var(--text-bright);" onclick="openModal('modal-switch-mode')">
+        ⚙️ Mode
+      </button>
       <button id="btn-reset-breaker-nav" class="btn btn-sm btn-warning" style="display:none;" onclick="resetCircuitBreaker()">
         Reset Breaker
       </button>
@@ -759,6 +762,10 @@
             <button class="btn btn-primary" style="width:100%; margin-top:8px;" onclick="saveCredentials()">
               Save Credentials
             </button>
+            <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="testBrokerConnection()">
+              🔌 Test Groww Connection
+            </button>
+            <div id="broker-test-result" style="display:none; margin-top:10px; padding:10px; border-radius:4px; font-size:12px; background:var(--bg-card-subtle);"></div>
           </div>
         </div>
 
@@ -811,6 +818,40 @@
   <!-- ==========================================
        MODALS
        ========================================== -->
+
+  <!-- Modal: Switch Execution Mode -->
+  <div id="modal-switch-mode" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">⚙️ Switch Execution Mode</span>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:12px; color:var(--text-muted); font-size:12px;">
+          Choose the active trading mode. Switching to <strong>LIVE</strong> routes real orders to Groww with real capital!
+        </p>
+        <div class="form-group">
+          <label class="form-label">Select Mode</label>
+          <select id="select-execution-mode" class="form-control" onchange="onModeSelectChange(this.value)">
+            <option value="PAPER">PAPER (Virtual Simulation)</option>
+            <option value="ANALYSIS">ANALYSIS (Signals Only)</option>
+            <option value="LIVE">LIVE (Real Orders with Groww API)</option>
+          </select>
+        </div>
+        <div id="live-confirmation-container" style="display:none; margin-top:12px; padding:10px; border:1px solid var(--color-red); background:rgba(239, 68, 68, 0.08); border-radius:4px;">
+          <strong style="color:var(--color-red); font-size:12px;">⚠️ WARNING: REAL CAPITAL AT RISK</strong>
+          <p style="font-size:11px; color:var(--text-muted); margin:4px 0 8px 0;">
+            To confirm LIVE mode, type <code>CONFIRM_LIVE_TRADING</code> below:
+          </p>
+          <input type="text" id="live-confirmation-input" class="form-control" placeholder="CONFIRM_LIVE_TRADING">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmSwitchMode()">Confirm Switch</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Emergency Kill Switch -->
   <div id="modal-kill-switch" class="modal-overlay">

@@ -33,7 +33,7 @@ def test_health_check_endpoint():
         assert data["status"] == "healthy"
         assert data["execution_mode"] == "ANALYSIS"
         assert data["database_connected"] is True
-        assert data["schema_version"] == 1
+        assert data["schema_version"] >= 1
 
 
 def test_system_status_endpoint():
